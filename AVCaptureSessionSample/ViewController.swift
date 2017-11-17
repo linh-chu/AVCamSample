@@ -110,7 +110,7 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
          access is optional. If audio access is denied, audio is not recorded
          during movie recording.
          */
-        switch AVCaptureDevice.authorizationStatus(forMediaType: AVMediaTypeVideo) {
+        switch AVCaptureDevice.authorizationStatus(for: AVMediaType.video) {
         case .authorized:
             // The user has previously granted access to the camera.
             break
@@ -125,7 +125,7 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
              create an AVCaptureDeviceInput for audio during session setup.
              */
             sessionQueue.suspend()
-            AVCaptureDevice.requestAccess(forMediaType: AVMediaTypeVideo, completionHandler: { [unowned self] granted in
+            AVCaptureDevice.requestAccess(for: AVMediaType.video, completionHandler: { [unowned self] granted in
                 if !granted {
                     self.setupResult = .notAuthorized
                 }
@@ -144,19 +144,19 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         }
         
         session.beginConfiguration()
-        session.sessionPreset = AVCaptureSessionPresetPhoto
+        session.sessionPreset = AVCaptureSession.Preset.photo
         
         // Add video input.
         do {
             var defaultVideoDevice: AVCaptureDevice?
             
             // Choose the back dual camera if available, otherwise default to a wide angle camera.
-            if let dualCameraDevice = AVCaptureDevice.defaultDevice(withDeviceType: AVCaptureDeviceType.builtInDuoCamera, mediaType: AVMediaTypeVideo, position: .back) {
+            if let dualCameraDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInDuoCamera, for: AVMediaType.video, position: .back) {
                 defaultVideoDevice = dualCameraDevice
-            } else if let backCameraDevice = AVCaptureDevice.defaultDevice(withDeviceType: .builtInWideAngleCamera, mediaType: AVMediaTypeVideo, position: .back) {
+            } else if let backCameraDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera, for: AVMediaType.video, position: .back) {
                 // If the back dual camera is not available, default to the back wide angle camera.
                 defaultVideoDevice = backCameraDevice
-            } else if let frontCameraDevice = AVCaptureDevice.defaultDevice(withDeviceType: .builtInWideAngleCamera, mediaType: AVMediaTypeVideo, position: .front) {                
+            } else if let frontCameraDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera, for: AVMediaType.video, position: .front) {                
                 /*
                  In some cases where users break their phones, the back wide angle camera is not available.
                  In this case, we should default to the front wide angle camera.
@@ -213,7 +213,7 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     
     // MARK: - AVCapturePhotoCaptureDelegate Methods
     
-    func capture(_ captureOutput: AVCapturePhotoOutput, didFinishProcessingPhotoSampleBuffer photoSampleBuffer: CMSampleBuffer?, previewPhotoSampleBuffer: CMSampleBuffer?, resolvedSettings: AVCaptureResolvedPhotoSettings, bracketSettings: AVCaptureBracketedStillImageSettings?, error: Error?) {
+    func photoOutput(_ captureOutput: AVCapturePhotoOutput, didFinishProcessingPhoto photoSampleBuffer: CMSampleBuffer?, previewPhoto previewPhotoSampleBuffer: CMSampleBuffer?, resolvedSettings: AVCaptureResolvedPhotoSettings, bracketSettings: AVCaptureBracketedStillImageSettings?, error: Error?) {
         
         if let error = error {
             print("Error capturing photo: \(error)")
