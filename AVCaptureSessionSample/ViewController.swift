@@ -1,7 +1,7 @@
 import UIKit
 import AVFoundation
 
-class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
+class ViewController: UIViewController {
     
     @IBOutlet weak var capturedImage: UIImageView!
     @IBOutlet weak var previewView: UIView!
@@ -149,9 +149,16 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         // Add video input.
         do {
             var defaultVideoDevice: AVCaptureDevice?
-            
+
             // Choose the back dual camera if available, otherwise default to a wide angle camera.
-            if let dualCameraDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInDuoCamera, for: AVMediaType.video, position: .back) {
+            let dualCameraDeviceType: AVCaptureDevice.DeviceType
+            if #available(iOS 11, *) {
+                dualCameraDeviceType = .builtInDualCamera
+            } else {
+                dualCameraDeviceType = .builtInDuoCamera
+            }
+
+            if let dualCameraDevice = AVCaptureDevice.default(dualCameraDeviceType, for: AVMediaType.video, position: .back) {
                 defaultVideoDevice = dualCameraDevice
             } else if let backCameraDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera, for: AVMediaType.video, position: .back) {
                 // If the back dual camera is not available, default to the back wide angle camera.
@@ -205,26 +212,42 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         if self.videoDeviceInput.device.isFlashAvailable {
             photoSettings.flashMode = .auto
         }
-        if !photoSettings.availablePreviewPhotoPixelFormatTypes.isEmpty {
-            photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: photoSettings.availablePreviewPhotoPixelFormatTypes.first!]
+
+        if let firstAvailablePreviewPhotoPixelFormatTypes = photoSettings.availablePreviewPhotoPixelFormatTypes.first {
+            photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: firstAvailablePreviewPhotoPixelFormatTypes]
         }
+
         photoOutput.capturePhoto(with: photoSettings, delegate: self)
     }
-    
-    // MARK: - AVCapturePhotoCaptureDelegate Methods
-    
+}
+
+  // MARK: - AVCapturePhotoCaptureDelegate Methods
+
+extension ViewController: AVCapturePhotoCaptureDelegate {
+
     func photoOutput(_ captureOutput: AVCapturePhotoOutput, didFinishProcessingPhoto photoSampleBuffer: CMSampleBuffer?, previewPhoto previewPhotoSampleBuffer: CMSampleBuffer?, resolvedSettings: AVCaptureResolvedPhotoSettings, bracketSettings: AVCaptureBracketedStillImageSettings?, error: Error?) {
-        
+
         if let error = error {
             print("Error capturing photo: \(error)")
         } else {
             if let sampleBuffer = photoSampleBuffer, let previewBuffer = previewPhotoSampleBuffer, let dataImage = AVCapturePhotoOutput.jpegPhotoDataRepresentation(forJPEGSampleBuffer: sampleBuffer, previewPhotoSampleBuffer: previewBuffer) {
-                
+
                 if let image = UIImage(data: dataImage) {
                     self.capturedImage.image = image
                 }
             }
         }
-        
+
+    }
+
+    @available(iOS 11.0, *)
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+
+        guard let data = photo.fileDataRepresentation(),
+              let image =  UIImage(data: data)  else {
+                return
+        }
+
+        self.capturedImage.image = image
     }
 }
